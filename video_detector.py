@@ -13,6 +13,11 @@ LABELS = ["person", "bicycle", "car", "motorbike", "aeroplane", "bus", "train", 
           "chair", "sofa", "pottedplant", "bed", "diningtable", "toilet", "tvmonitor", "laptop", "mouse",
           "remote", "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator",
           "book", "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"]
+
+
+KV = 640/416 #H
+KH = 480/416 #V
+
 # -------------------------------------------------------
 import numpy as np
 from numpy import expand_dims
@@ -171,7 +176,7 @@ def get_boxes(boxes, labels, thresh):
 
 # draw all results
 def draw_boxes_video(frame, v_boxes, v_labels, v_scores):
-    # draw each box
+    # draw each boxq
     for i in range(len(v_boxes)):
         box = v_boxes[i]
         # get coordinates
@@ -179,19 +184,19 @@ def draw_boxes_video(frame, v_boxes, v_labels, v_scores):
         # calculate width and height of the box
         width, height = x2 - x1, y2 - y1
         # draw the box
-        cv2.rectangle(frame, (x1, y1), (width, height), (0, 255, 0))
+        cv2.rectangle(frame, (int(x1*KH), int(y1*KV)), (int(x2*KH), int(y2*KV)), (0, 255, 0))
         #rect = Rectangle((x1, y1), width, height, fill=False, color='white')
         # draw text and score in top left corner
         label = "%s (%.3f)" % (v_labels[i], v_scores[i])
-        cv2.putText(frame, label, (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36,255,12), 2)
+        cv2.putText(frame, label, (int(x1*KH), int((y1*KV)-10)), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (36,255,12), 1) #y1-10
         #pyplot.text(x1, y1, label, color='white')
     # show the plot
     return frame
 
 def prepare_frame(frame):
     # define the expected input shape for the model
-    #input_w, input_h = 416, 416
-    (input_w, input_h) = (480, 640)
+    input_w, input_h = 416, 416
+    # (input_w, input_h) = (480, 640)
     # load and prepare image
     image, image_w, image_h = load_image_pixels(frame, (input_w, input_h))
     print("this:")
@@ -219,15 +224,20 @@ def prepare_frame(frame):
     for i in range(len(v_boxes)):
         print(v_labels[i], v_scores[i])
     # draw what we found
+    frame = cv2.resize(frame, (480, 640))
     return draw_boxes_video(frame, v_boxes, v_labels, v_scores)
 # ____________________________________________________
 # Create a video capture object, in this case we are reading the video from a file
 #vid_capture = cv2.VideoCapture('some_landmarks.mp4')
 vid_capture = cv2.VideoCapture('landmarks_bath.mp4')
 
+#vid_capture = cv2.VideoCapture('landmarks_half_liv.mp4')
+#vid_capture = cv2.VideoCapture('landmarks_hall_kitchen.mp4')
+vid_capture.set(cv2.CAP_PROP_FPS,60)
+
 
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
-salida = cv2.VideoWriter('videoSalida.avi',fourcc,20.0, (480, 640)) # (240, 428)
+salida = cv2.VideoWriter('videoSalida2.avi',fourcc,20.0, (480, 640)) # (480, 640) (416, 416)
 
 
 # load yolov3 model
@@ -253,7 +263,7 @@ while (vid_capture.isOpened()):
     ret, frame = vid_capture.read()
     if ret == True:
         #print(frame.shape)
-        frame = cv2.resize(frame, (480, 640))#(428, 240)
+        frame = cv2.resize(frame, (416, 416))#(480, 640)
         # get image height, width
         #(h, w) = frame.shape[:2]
 
@@ -263,11 +273,11 @@ while (vid_capture.isOpened()):
         print("prepare:")
         print(res.shape)
 
-        res = cv2.resize(res, (480, 640))#  240*2, 428*2 (ancho, alto)
-        #cv2.imshow('Frame', res)
+        #res = cv2.resize(res, (416 ,416))#  240*2, 428*2 (ancho, alto)
+        cv2.imshow('Frame', res)
         salida.write(res)
         # 20 is in milliseconds, try to increase the value, say 50 and observe
-        key = cv2.waitKey(300)
+        key = cv2.waitKey(1)
 
         if key == ord('q'):
             break
